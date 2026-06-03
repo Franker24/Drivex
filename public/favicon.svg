@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 100" fill="none">
+  <style>
+    path.monogram-d {
+      fill: #000000;
+    }
+    @media (prefers-color-scheme: dark) {
+      path.monogram-d {
+        fill: #ffffff;
+      }
+    }
+  </style>
+  <g id="D-Monogram">
+    <path class="monogram-d" d="M 10 15 H 65 C 88 15 102 29 102 50 C 102 71 88 85 65 85 H 10 V 15 Z M 28 70 H 58 C 72 70 82 62 82 50 C 82 38 72 30 58 30 H 28 V 70 Z" fill-rule="evenodd" />
+    <path d="M 30 85 C 50 82 72 71 96 53 L 99 57 C 74 76 52 85 34 85 Z" fill="#e5c188" />
+  </g>
+</svg>
