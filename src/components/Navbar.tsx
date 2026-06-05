@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { db, User } from '../services/db';
+import AuthModal from './AuthModal';
 
 interface NavbarProps {
   onToggleDrawer: () => void;
@@ -34,6 +36,29 @@ export default function Navbar({ onToggleDrawer }: NavbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser());
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setCurrentUser(db.getCurrentUser());
+    };
+    window.addEventListener('auth_change', handleAuthChange);
+    return () => window.removeEventListener('auth_change', handleAuthChange);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Focus input when search is opened
   useEffect(() => {
@@ -137,6 +162,73 @@ export default function Navbar({ onToggleDrawer }: NavbarProps) {
             >
               search
             </span>
+
+            {/* Auth Section */}
+            <div className="relative flex items-center" ref={dropdownRef}>
+              {currentUser ? (
+                <>
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="w-9 h-9 rounded-full bg-secondary-fixed-dim text-black font-bold text-xs flex items-center justify-center border border-white/10 hover:border-secondary-fixed-dim hover:scale-105 transition-all cursor-pointer shadow-[0_2px_10px_rgba(0,0,0,0.15)]"
+                  >
+                    {currentUser.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </button>
+                  
+                  {dropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#121212]/95 backdrop-blur-xl border border-white/10 rounded-xl py-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 animate-fade-in text-white">
+                      <div className="px-4 py-2 border-b border-white/5 mb-2">
+                        <p className="text-xs font-semibold truncate text-white">{currentUser.name}</p>
+                        <p className="text-[10px] text-white/50 truncate">{currentUser.email}</p>
+                      </div>
+                      
+                      <Link
+                        to="/garage"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-xs text-white/85 hover:text-secondary-fixed-dim hover:bg-white/5 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-base">garage</span>
+                        <span>My Garage</span>
+                      </Link>
+
+                      {currentUser.role === 'admin' && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2 text-xs text-white/85 hover:text-secondary-fixed-dim hover:bg-white/5 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-base">admin_panel_settings</span>
+                          <span>Admin Dashboard</span>
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          db.logout();
+                          setDropdownOpen(false);
+                          navigate('/');
+                        }}
+                        className="w-full text-left flex items-center gap-3 px-4 py-2 text-xs text-red-400 hover:bg-red-500/5 transition-all mt-2 border-t border-white/5 pt-3 cursor-pointer font-medium"
+                      >
+                        <span className="material-symbols-outlined text-base">logout</span>
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="font-label-caps text-[10px] tracking-wider text-secondary-fixed-dim hover:text-white border border-secondary-fixed-dim/30 hover:border-secondary-fixed-dim px-3 py-1.5 rounded-full transition-all cursor-pointer bg-white/5"
+                >
+                  Sign In
+                </button>
+              )}
+            </div>
           </div>
         </nav>
       </header>
@@ -288,6 +380,8 @@ export default function Navbar({ onToggleDrawer }: NavbarProps) {
           </div>
         </div>
       )}
+      {/* Auth Modal overlay */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </>
   );
 }

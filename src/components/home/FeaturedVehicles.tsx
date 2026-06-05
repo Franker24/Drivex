@@ -49,15 +49,15 @@ export default function FeaturedVehicles() {
       name: 'Phantom Zenith',
       price: '$245,000',
       tags: ['ELECTRIC', 'AVAILABLE'],
-      image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
-      alt: "Close-up of a midnight black supercar's rear lights and carbon fiber diffuser."
+      image: 'https://images.unsplash.com/photo-1632245889029-e406faaa34cd?auto=format&fit=crop&w=1200&q=80',
+      alt: "A black Rolls-Royce Ghost parked outdoors."
     },
     {
       id: 'apex-gtr',
       name: 'Apex GT-R',
       price: '$310,000',
       tags: ['HYBRID', 'TRACK FOCUS'],
-      image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80',
+      image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
       alt: "Front profile of an aggressive grey high-performance track sports car in a dark studio setting."
     },
     {
@@ -65,8 +65,40 @@ export default function FeaturedVehicles() {
       name: 'Lumina S-Class',
       price: '$185,000',
       tags: ['LUXURY', 'V6 TURBO'],
+      image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80',
+      alt: "A profile view of a grey luxury Mercedes sedan driving through a minimalist environment."
+    },
+    {
+      id: 'porsche-911-gt3',
+      name: 'Porsche 911 GT3',
+      price: '$182,900',
+      tags: ['MOTORSPORT', '9000 RPM'],
+      image: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80',
+      alt: 'A sleek silver Porsche 911 GT3.'
+    },
+    {
+      id: 'ferrari-roma',
+      name: 'Ferrari Roma',
+      price: '$243,360',
+      tags: ['V8 GT', 'ITALIAN DESIGN'],
+      image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
+      alt: 'A vibrant red Ferrari Roma.'
+    },
+    {
+      id: 'lamborghini-huracan',
+      name: 'Lamborghini Huracán',
+      price: '$248,000',
+      tags: ['V10', 'TRACK FOCUS'],
+      image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=1200&q=80',
+      alt: 'A yellow Lamborghini Huracán.'
+    },
+    {
+      id: 'tesla-model-s-plaid',
+      name: 'Tesla Model S Plaid',
+      price: '$89,990',
+      tags: ['ELECTRIC', '1020 HP'],
       image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
-      alt: "A profile view of a charcoal grey luxury sedan driving through a minimalist urban environment."
+      alt: 'A white Tesla Model S Plaid.'
     }
   ];
 

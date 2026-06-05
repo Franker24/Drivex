@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSpring, animated } from '@react-spring/web';
+import { db } from '../services/db';
 
 export default function TestDrive() {
   const [selectedVehicle, setSelectedVehicle] = useState('apex-gtr');
@@ -14,6 +15,20 @@ export default function TestDrive() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save booking to local database
+    db.addBooking({
+      userId: db.getCurrentUser()?.id,
+      name: formData.fullName,
+      email: formData.email,
+      phone: '+1 (555) 0122', // mock phone
+      carId: selectedVehicle,
+      carName: currentVehicleName,
+      date: formData.date,
+      timeSlot: formData.timePreference,
+      notes: `Delivery/Showroom Address: ${formData.address}`
+    });
+
     setIsSubmitted(true);
   };
 

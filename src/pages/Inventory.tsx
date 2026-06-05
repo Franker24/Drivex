@@ -36,6 +36,57 @@ const LOCAL_SPECS: Record<string, { hp: string; acceleration: string }> = {
   'corvette z06': { hp: '670 HP', acceleration: '2.6s 0-60' }
 };
 
+const LOCAL_IMAGES: Record<string, { url: string; alt: string }> = {
+  '911 gt3': {
+    url: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A sleek silver Porsche 911 GT3.'
+  },
+  'artura': {
+    url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A black McLaren Artura.'
+  },
+  'roma': {
+    url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A vibrant red Ferrari Roma.'
+  },
+  'model s': {
+    url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A white Tesla Model S Plaid.'
+  },
+  'taycan': {
+    url: 'https://images.unsplash.com/photo-1611245801318-7b340edb647d?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A blue Porsche Taycan Turbo S.'
+  },
+  '720s': {
+    url: 'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A bespoke McLaren 720S.'
+  },
+  'vantage': {
+    url: 'https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A British racing green Aston Martin Vantage.'
+  },
+  'r8': {
+    url: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A sleek grey Audi R8 Coupe.'
+  },
+  'huracan': {
+    url: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A yellow Lamborghini Huracán.'
+  },
+  'continental gt': {
+    url: 'https://images.unsplash.com/photo-1618843479619-f41987ba05a3?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A black Bentley Continental GT.'
+  },
+  'i8': {
+    url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A sleek white BMW i8 Roadster.'
+  },
+  'corvette z06': {
+    url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80',
+    alt: 'A red Chevrolet Corvette Z06.'
+  }
+};
+
 // Fallback data in case APIs fail
 const FALLBACK_CARS: Car[] = [
   {
@@ -264,15 +315,23 @@ export default function Inventory() {
           const ninjaData = await ninjaRes.json();
           const ninjaCar = ninjaData[0] || {};
 
-          // 2. Fetch image from Unsplash
-          const unsplashRes = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(item.make + ' ' + item.model + ' car')}&per_page=1`,
-            { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
-          );
-          if (!unsplashRes.ok) throw new Error('Unsplash API Error');
-          const unsplashData = await unsplashRes.json();
-          const imgUrl = unsplashData.results?.[0]?.urls?.regular || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70';
-          const altText = unsplashData.results?.[0]?.alt_description || `A premium ${item.make} ${item.model}`;
+          // 2. Determine image (check static map first)
+          let imgUrl = '';
+          let altText = '';
+          const localImgKey = item.model.toLowerCase();
+          if (LOCAL_IMAGES[localImgKey]) {
+            imgUrl = LOCAL_IMAGES[localImgKey].url;
+            altText = LOCAL_IMAGES[localImgKey].alt;
+          } else {
+            const unsplashRes = await fetch(
+              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(item.make + ' ' + item.model + ' car')}&per_page=1`,
+              { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
+            );
+            if (!unsplashRes.ok) throw new Error('Unsplash API Error');
+            const unsplashData = await unsplashRes.json();
+            imgUrl = unsplashData.results?.[0]?.urls?.regular || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70';
+            altText = unsplashData.results?.[0]?.alt_description || `A premium ${item.make} ${item.model}`;
+          }
 
           // 3. Map propulsion type
           let type: 'Electric' | 'Hybrid' | 'Combustion' = 'Combustion';
@@ -399,35 +458,39 @@ export default function Inventory() {
           const makeStr = item.make.toUpperCase();
           const modelStr = item.model.charAt(0).toUpperCase() + item.model.slice(1);
           
-          let imgUrl = '';
-          let altText = `A premium ${makeStr} ${modelStr}`;
-          
-          try {
-            const unsplashRes = await fetch(
-              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(item.make + ' ' + item.model + ' car')}&per_page=1`,
-              { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
-            );
-            if (unsplashRes.ok) {
-              const data = await unsplashRes.json();
-              imgUrl = data.results?.[0]?.urls?.regular;
-              if (data.results?.[0]?.alt_description) {
-                altText = data.results[0].alt_description;
+          // Determine image (check static map first)
+          const localImgKey = Object.keys(LOCAL_IMAGES).find(key => item.model.toLowerCase().includes(key));
+          if (localImgKey) {
+            imgUrl = LOCAL_IMAGES[localImgKey].url;
+            altText = LOCAL_IMAGES[localImgKey].alt;
+          } else {
+            try {
+              const unsplashRes = await fetch(
+                `https://api.unsplash.com/search/photos?query=${encodeURIComponent(item.make + ' ' + item.model + ' car')}&per_page=1`,
+                { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } }
+              );
+              if (unsplashRes.ok) {
+                const data = await unsplashRes.json();
+                imgUrl = data.results?.[0]?.urls?.regular;
+                if (data.results?.[0]?.alt_description) {
+                  altText = data.results[0].alt_description;
+                }
               }
+            } catch (unsplashErr) {
+              console.warn("Unsplash live fetch error", unsplashErr);
             }
-          } catch (unsplashErr) {
-            console.warn("Unsplash live fetch error", unsplashErr);
-          }
 
-          if (!imgUrl) {
-            const backupImages = [
-              'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
-              'https://images.unsplash.com/photo-1611245801318-7b340edb647d?auto=format&fit=crop&w=1200&q=80',
-              'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
-              'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
-              'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80',
-              'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=1200&q=80'
-            ];
-            imgUrl = backupImages[idx % backupImages.length];
+            if (!imgUrl) {
+              const backupImages = [
+                'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1611245801318-7b340edb647d?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80',
+                'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=1200&q=80'
+              ];
+              imgUrl = backupImages[idx % backupImages.length];
+            }
           }
 
           // Generate premium price

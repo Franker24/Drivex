@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSpring, animated } from '@react-spring/web';
+import { db, User } from '../services/db';
+import AuthModal from '../components/AuthModal';
+import VehicleConfigurator3D from '../components/3d/VehicleConfigurator3D';
 
 interface VehicleSpec {
   engine: string;
@@ -33,7 +36,7 @@ const VEHICLES_DATABASE: CompareVehicle[] = [
     price: 245000,
     priceFormatted: '$245,000',
     type: 'Electric',
-    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1632245889029-e406faaa34cd?auto=format&fit=crop&w=1200&q=80',
     alt: 'Midnight black Phantom Zenith in gallery.',
     specs: {
       engine: 'DUAL MOTOR ELECTRIC',
@@ -54,7 +57,7 @@ const VEHICLES_DATABASE: CompareVehicle[] = [
     price: 310000,
     priceFormatted: '$310,000',
     type: 'Hybrid',
-    image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
     alt: 'Apex GT-R carbon edition.',
     specs: {
       engine: '4.0L V8 HYBRID',
@@ -75,7 +78,7 @@ const VEHICLES_DATABASE: CompareVehicle[] = [
     price: 185000,
     priceFormatted: '$185,000',
     type: 'Combustion',
-    image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80',
     alt: 'Lumina S-Class premium luxury sedan.',
     specs: {
       engine: '3.0L V6 TWIN-TURBO',
@@ -356,6 +359,167 @@ export default function Compare() {
   const [buyerEmail, setBuyerEmail] = useState('');
   const [buildSubmitted, setBuildSubmitted] = useState(false);
 
+  const [currentUser, setCurrentUser] = useState<User | null>(db.getCurrentUser());
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState('');
+  
+  // Stripe Sandbox states
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
+  useEffect(() => {
+    const handleAuth = () => {
+      setCurrentUser(db.getCurrentUser());
+    };
+    window.addEventListener('auth_change', handleAuth);
+    return () => window.removeEventListener('auth_change', handleAuth);
+  }, []);
+
+  const handleAuthSuccess = () => {
+    const activeUser = db.getCurrentUser();
+    if (activeUser && configuringCar) {
+      const selectedPaintObj = colors.find(c => c.id === selectedColor) || colors[0];
+      const selectedWheelObj = wheels.find(w => w.id === selectedWheel) || wheels[0];
+      const selectedInteriorObj = interiors.find(i => i.id === selectedInterior) || interiors[0];
+
+      db.addGarageItem({
+        userId: activeUser.id,
+        carId: configuringCar.id,
+        carName: configuringCar.name,
+        paint: { name: selectedPaintObj.name, hex: selectedPaintObj.hex, price: selectedPaintObj.price },
+        wheels: { name: selectedWheelObj.name, price: selectedWheelObj.price },
+        interior: { name: selectedInteriorObj.name, price: selectedInteriorObj.price },
+        totalPrice: finalPrice
+      });
+
+      setSaveSuccess('Configuration saved successfully to My Garage!');
+      setTimeout(() => setSaveSuccess(''), 3000);
+    }
+  };
+
+  const handleSaveConfig = () => {
+    if (!configuringCar) return;
+
+    if (!currentUser) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    const selectedPaintObj = colors.find(c => c.id === selectedColor) || colors[0];
+    const selectedWheelObj = wheels.find(w => w.id === selectedWheel) || wheels[0];
+    const selectedInteriorObj = interiors.find(i => i.id === selectedInterior) || interiors[0];
+
+    db.addGarageItem({
+      userId: currentUser.id,
+      carId: configuringCar.id,
+      carName: configuringCar.name,
+      paint: { name: selectedPaintObj.name, hex: selectedPaintObj.hex, price: selectedPaintObj.price },
+      wheels: { name: selectedWheelObj.name, price: selectedWheelObj.price },
+      interior: { name: selectedInteriorObj.name, price: selectedInteriorObj.price },
+      totalPrice: finalPrice
+    });
+
+    setSaveSuccess('Configuration saved successfully to My Garage!');
+    setTimeout(() => setSaveSuccess(''), 3000);
+  };
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length > 0) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const formatExpiry = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) {
+      return `${v.slice(0, 2)}/${v.slice(2, 4)}`;
+    }
+    return v;
+  };
+
+  const getCardType = (num: string) => {
+    const cleanNum = num.replace(/\s/g, '');
+    if (cleanNum.startsWith('4')) return 'Visa';
+    if (/^5[1-5]/.test(cleanNum)) return 'Mastercard';
+    if (/^3[47]/.test(cleanNum)) return 'Amex';
+    return 'Credit Card';
+  };
+
+  const handleStripePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPaymentError('');
+    
+    const rawCard = cardNumber.replace(/\s/g, '');
+    if (rawCard.length < 15) {
+      setPaymentError('Invalid card number. Must be 15 or 16 digits.');
+      return;
+    }
+    if (!cardExpiry.includes('/') || cardExpiry.length < 5) {
+      setPaymentError('Invalid expiry. Format MM/YY.');
+      return;
+    }
+    if (cardCvc.length < 3) {
+      setPaymentError('Invalid CVC.');
+      return;
+    }
+    if (!cardName) {
+      setPaymentError('Please enter cardholder name.');
+      return;
+    }
+
+    setPaymentProcessing(true);
+
+    setTimeout(() => {
+      setPaymentProcessing(false);
+      setPaymentSuccess(true);
+      
+      const paintObj = colors.find(c => c.id === selectedColor) || colors[0];
+      const wheelObj = wheels.find(w => w.id === selectedWheel) || wheels[0];
+      const interiorObj = interiors.find(i => i.id === selectedInterior) || interiors[0];
+
+      db.addBooking({
+        userId: currentUser?.id,
+        name: cardName,
+        email: currentUser?.email || 'guest@stripe-sandbox.com',
+        phone: '+1 (555) STRIPE',
+        carId: configuringCar?.id || '',
+        carName: configuringCar?.name || '',
+        date: new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+        timeSlot: '02:00 PM - 04:00 PM',
+        status: 'approved',
+        notes: `PRE-PAID RESERVE ($5,000 hold authorized via Stripe Simulator). Client: ${cardName}. Config specs - Paint: ${paintObj.name}, Wheels: ${wheelObj.name}, Interior: ${interiorObj.name}.`
+      });
+
+      setTimeout(() => {
+        setStripeModalOpen(false);
+        setPaymentSuccess(false);
+        setConfiguringCar(null);
+        setCardNumber('');
+        setCardExpiry('');
+        setCardCvc('');
+        setCardName('');
+      }, 2500);
+
+    }, 2000);
+  };
+
   const car1 = VEHICLES_DATABASE.find(c => c.id === car1Id) || VEHICLES_DATABASE[0];
   const car2 = VEHICLES_DATABASE.find(c => c.id === car2Id) || VEHICLES_DATABASE[1];
 
@@ -634,14 +798,19 @@ export default function Compare() {
                 <span className="font-label-caps text-[10px] text-secondary-fixed-dim tracking-[0.2em] uppercase">CUSTOM CONFIGURATOR</span>
                 <h2 className="font-headline-lg text-headline-lg font-bold text-primary uppercase mt-1">{configuringCar.name}</h2>
                 <p className="font-body-md text-on-surface-variant mt-2 text-xs md:text-sm">{configuringCar.brand} specification profile.</p>
-                <div className="mt-4 md:mt-6 rounded-xl overflow-hidden shadow-md aspect-video border border-outline-variant/10">
-                  <img className="w-full h-full object-cover" alt={configuringCar.alt} src={configuringCar.image} />
+                
+                {/* 3D Configurator Canvas instead of static image */}
+                <div className="mt-4 md:mt-6 rounded-xl overflow-hidden shadow-md border border-outline-variant/15 aspect-video h-[200px] md:h-[250px]">
+                  <VehicleConfigurator3D 
+                    paintColor={colors.find(c => c.id === selectedColor)?.hex || '#11131c'} 
+                    wheelStyle={wheels.find(w => w.id === selectedWheel)?.name || 'standard'} 
+                  />
                 </div>
               </div>
 
               <div className="mt-6 md:mt-8 border-t border-outline-variant/20 pt-4 md:pt-6">
                 <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">TOTAL INVESTMENT</span>
-                <div className="text-display-lg-mobile text-[32px] md:text-[40px] font-extrabold text-primary mt-1">
+                <div className="text-display-lg-mobile text-[28px] md:text-[34px] font-extrabold text-primary mt-1">
                   {formatCurrency(finalPrice)}
                 </div>
                 <div className="flex flex-col gap-1.5 mt-4 text-[12px] md:text-[13px] text-on-surface-variant font-medium">
@@ -661,6 +830,39 @@ export default function Compare() {
                     <span>Interior Trim</span>
                     <span className="font-semibold text-secondary-fixed-dim">+{formatCurrency(interiors.find(i => i.id === selectedInterior)?.price || 0)}</span>
                   </div>
+                </div>
+
+                {/* Save and Reserve Buttons */}
+                <div className="mt-6 flex flex-col gap-3">
+                  {saveSuccess && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 text-xs p-2.5 rounded-lg flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">check_circle</span>
+                      <span className="font-medium">{saveSuccess}</span>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveConfig}
+                      className="bg-[#111] hover:bg-black text-white border border-[#222] font-semibold text-xs py-3 rounded-lg uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer hover:border-secondary-fixed-dim hover:text-secondary-fixed-dim"
+                    >
+                      <span className="material-symbols-outlined text-base">save</span>
+                      <span>Save Config</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setStripeModalOpen(true)}
+                      className="bg-secondary-fixed-dim hover:bg-white text-black font-semibold text-xs py-3 rounded-lg uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_2px_10px_rgba(229,193,136,0.15)]"
+                    >
+                      <span className="material-symbols-outlined text-base">payments</span>
+                      <span>Reserve</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-on-surface-variant/70 text-center italic">
+                    * Reserve secures priority delivery with a refundable $5,000 hold.
+                  </p>
                 </div>
               </div>
             </div>
@@ -814,6 +1016,166 @@ export default function Compare() {
           </div>
         </animated.div>
       )}
+      {/* Stripe checkout simulator modal */}
+      {stripeModalOpen && configuringCar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in px-4">
+          <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-2xl p-8 relative shadow-2xl overflow-hidden text-white">
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-secondary-fixed-dim/10 rounded-full blur-[80px]" />
+            
+            <button 
+              onClick={() => setStripeModalOpen(false)}
+              className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+
+            <div className="text-center mb-6">
+              <span className="font-label-caps text-[10px] text-secondary-fixed-dim tracking-[0.25em] font-bold uppercase">
+                stripe payment sandbox
+              </span>
+              <h2 className="font-headline-md text-xl text-white font-bold mt-2 uppercase">
+                Secure Reservation Hold
+              </h2>
+              <p className="text-white/60 text-xs mt-1">
+                Authorizing a temporary refundable $5,000 reservation hold for your custom build.
+              </p>
+            </div>
+
+            {paymentSuccess ? (
+              <div className="py-12 text-center space-y-4 animate-fade-in">
+                <span className="material-symbols-outlined text-6xl text-emerald-400 animate-bounce">check_circle</span>
+                <h3 className="font-headline-md text-lg text-white font-bold">Hold Authorization Successful!</h3>
+                <p className="text-white/60 text-xs max-w-xs mx-auto">
+                  Your payment was processed successfully. Our concierge department will reach out to you within 24 hours to confirm delivery options.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                
+                {/* Credit Card Preview Screen */}
+                <div className="w-full h-44 rounded-xl bg-gradient-to-tr from-[#161616] to-[#262626] border border-white/10 p-5 flex flex-col justify-between relative shadow-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-[9px] font-label-caps tracking-widest text-white/40 uppercase">Drivex Priority Card</p>
+                      <h4 className="text-sm font-semibold text-secondary-fixed-dim mt-1 truncate max-w-[240px]">{configuringCar.name} Spec</h4>
+                    </div>
+                    <span className="material-symbols-outlined text-3xl text-secondary-fixed-dim/80">contactless</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-base tracking-[0.25em] font-mono text-white/80">
+                      {cardNumber || '•••• •••• •••• ••••'}
+                    </p>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[8px] text-white/30 uppercase tracking-wider font-label-caps">Cardholder</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-white/70 truncate max-w-[200px]">{cardName || 'YOUR NAME'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[8px] text-white/30 uppercase tracking-wider font-label-caps">Expires</p>
+                        <p className="text-xs font-semibold text-white/70">{cardExpiry || 'MM/YY'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[8px] text-white/30 uppercase tracking-wider font-label-caps">Type</p>
+                        <p className="text-[10px] font-bold text-secondary-fixed-dim">{getCardType(cardNumber)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={handleStripePayment} className="space-y-4">
+                  {paymentError && (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      <span>{paymentError}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-label-caps text-white/60 uppercase tracking-wider">Cardholder Name</label>
+                    <input 
+                      type="text"
+                      placeholder="Jane Doe"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-secondary-fixed-dim focus:outline-none transition-colors"
+                      required
+                      disabled={paymentProcessing}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-label-caps text-white/60 uppercase tracking-wider">Card Number</label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        placeholder="4000 1234 5678 9010"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-xs text-white focus:border-secondary-fixed-dim focus:outline-none transition-colors font-mono"
+                        maxLength={19}
+                        required
+                        disabled={paymentProcessing}
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-lg text-white/30">credit_card</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-label-caps text-white/60 uppercase tracking-wider">Expiration Date</label>
+                      <input 
+                        type="text"
+                        placeholder="MM/YY"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-secondary-fixed-dim focus:outline-none transition-colors font-mono"
+                        maxLength={5}
+                        required
+                        disabled={paymentProcessing}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-label-caps text-white/60 uppercase tracking-wider">CVC</label>
+                      <input 
+                        type="password"
+                        placeholder="•••"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-secondary-fixed-dim focus:outline-none transition-colors font-mono"
+                        maxLength={4}
+                        required
+                        disabled={paymentProcessing}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-secondary-fixed-dim hover:bg-white text-black font-semibold text-xs py-3.5 rounded-xl uppercase tracking-wider transition-all duration-300 mt-6 shadow-[0_4px_20px_rgba(229,193,136,0.15)] flex items-center justify-center gap-2 cursor-pointer font-bold"
+                    disabled={paymentProcessing}
+                  >
+                    {paymentProcessing ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                        <span>Processing Authorized Hold...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-base">lock</span>
+                        <span>Authorize Refundable $5,000 Hold</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Auth modal instance for guests who save a config */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
     </div>
   );
 }

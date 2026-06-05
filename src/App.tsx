@@ -10,6 +10,8 @@ import ElectricCollection from './pages/ElectricCollection';
 import PerformanceCollection from './pages/PerformanceCollection';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Garage from './pages/Garage';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
           <Route path="/collection/performance" element={<PerformanceCollection />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/garage" element={<Garage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           {/* Fallback route to home */}
           <Route path="*" element={<Home />} />
         </Routes>

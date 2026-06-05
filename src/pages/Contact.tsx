@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { db } from '../services/db';
 
 interface Location {
   name: string;
@@ -81,6 +82,18 @@ export default function Contact() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save inquiry to local database
+    db.addInquiry({
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      subject: formData.topic === 'sales' ? 'Sales & Acquisition' 
+             : formData.topic === 'service' ? 'Service & Bespoke Modification'
+             : formData.topic === 'press' ? 'Press & Media Partnerships'
+             : 'General Concierge Inquiry',
+      message: formData.message
+    });
+
     setIsSubmitted(true);
   };
 

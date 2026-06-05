@@ -80,25 +80,28 @@ export default function ElectricCollection() {
 
       <main className="py-12 text-black">
         {/* Hero Banner */}
-        <section className="relative h-[500px] min-h-[400px] w-full max-w-container-max-width mx-auto mb-16 px-grid-margin">
-          <div className="w-full h-full rounded-xl overflow-hidden relative shadow-lg">
-            <img 
-              className="absolute inset-0 w-full h-full object-cover" 
-              alt="Futuristic electric supercar in bright white studio." 
-              src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80" 
-            />
-            {/* Reduced shading overlay (from background/95 to background/35) */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/35 via-transparent to-transparent"></div>
-            <div className="absolute bottom-10 left-10 md:bottom-20 md:left-20 max-w-2xl text-black bg-white/75 backdrop-blur-md p-8 rounded-xl border border-white/40 shadow-xl">
-              <span className="inline-block px-4 py-2 bg-primary/10 rounded-full font-label-caps text-label-caps text-primary mb-4 tracking-widest uppercase">
+        <section className="w-full max-w-container-max-width mx-auto mb-16 px-grid-margin">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#f8f9fa] rounded-2xl overflow-hidden border border-outline-variant/10 shadow-lg p-6 md:p-10">
+            <div className="lg:col-span-6 space-y-6">
+              <span className="inline-block px-4 py-2 bg-primary/10 rounded-full font-label-caps text-label-caps text-primary tracking-widest uppercase text-xs font-semibold">
                 The Future of Performance
               </span>
-              <h1 className="font-display-lg text-headline-lg md:text-[56px] text-primary mb-4 uppercase font-extrabold leading-tight">
+              <h1 className="font-display-lg text-[40px] md:text-[56px] text-primary mb-4 uppercase font-extrabold leading-tight">
                 Electric Collection
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
                 Zero emissions. Infinite exhilaration. Discover a curated selection of the world's most advanced electric supercars, engineered for a new era of driving.
               </p>
+            </div>
+            
+            <div className="lg:col-span-6">
+              <div className="aspect-[16/10] rounded-xl overflow-hidden shadow-md">
+                <img 
+                  className="w-full h-full object-cover" 
+                  alt="Futuristic electric supercar." 
+                  src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1200&q=80" 
+                />
+              </div>
             </div>
           </div>
         </section>
